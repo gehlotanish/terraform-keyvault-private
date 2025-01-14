@@ -1,5 +1,5 @@
 locals {
   default_tags = {
-    "Env" = var.environment
+    "environment" = var.environment
   }
 }
