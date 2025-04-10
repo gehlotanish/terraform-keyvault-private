@@ -51,19 +51,11 @@ resource "azurerm_monitor_diagnostic_setting" "keyvault_diag" {
   # Audit Logs
   enabled_log {
     category = "AuditEvent"
-    retention_policy {
-      enabled = true
-      days    = var.diagnostic_retention_days
-    }
   }
 
   # Metrics
   metric {
     category = "AllMetrics"
     enabled  = true
-    retention_policy {
-      enabled = true
-      days    = var.diagnostic_retention_days
-    }
   }
 }

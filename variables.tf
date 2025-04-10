@@ -66,12 +66,6 @@ variable "log_analytics_workspace_name" {
   description = "The name of an existing Log Analytics Workspace to use for diagnostic settings. If null and diag_enabled is true, diagnostics will not be configured."
 }
 
-variable "diagnostic_retention_days" {
-  type        = number
-  default     = 30
-  description = "The number of days to retain diagnostic logs and metrics in the Log Analytics Workspace. Must be a positive integer."
-}
-
 variable "keyvault_extra_tags" {
   type        = map(string)
   default     = {}

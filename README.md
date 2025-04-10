@@ -21,7 +21,6 @@ No modules.
 |------|-------------|------|---------|:--------:|
 | <a name="input_certificate_permissions"></a> [certificate\_permissions](#input\_certificate\_permissions) | List of certificate permissions for the access policy (if RBAC is not enabled). Valid values include 'Get', 'List', 'Create', 'Delete', 'Update', etc. | `list(string)` | <pre>[<br>  "Get",<br>  "List"<br>]</pre> | no |
 | <a name="input_diag_enabled"></a> [diag\_enabled](#input\_diag\_enabled) | Enables diagnostic settings for the Key Vault, sending logs and metrics to the specified Log Analytics Workspace. Set to 'true' to enable. | `bool` | `false` | no |
-| <a name="input_diagnostic_retention_days"></a> [diagnostic\_retention\_days](#input\_diagnostic\_retention\_days) | The number of days to retain diagnostic logs and metrics in the Log Analytics Workspace. Must be a positive integer. | `number` | `30` | no |
 | <a name="input_enable_rbac_authorization"></a> [enable\_rbac\_authorization](#input\_enable\_rbac\_authorization) | Enables Azure Role-Based Access Control (RBAC) for the Key Vault instead of using access policies. Set to 'true' to use RBAC. | `bool` | `false` | no |
 | <a name="input_environment"></a> [environment](#input\_environment) | The environment tag for the Key Vault (e.g., 'production', 'staging', 'development') used for resource tagging. | `string` | `"production"` | no |
 | <a name="input_key_permissions"></a> [key\_permissions](#input\_key\_permissions) | List of key permissions for the access policy (if RBAC is not enabled). Valid values include 'Create', 'Get', 'List', 'Delete', etc. | `list(string)` | <pre>[<br>  "Create",<br>  "Get"<br>]</pre> | no |
@@ -73,7 +72,6 @@ environment                 = "production"
 diag_enabled                      = true
 log_analytics_workspace_name      = "my-log-analytics-workspace"
 log_analytics_resource_group_name = "my-log-analytics-workspace-rg"
-diagnostic_retention_days   = 30
 
 # Additional tags
 keyvault_extra_tags = {
