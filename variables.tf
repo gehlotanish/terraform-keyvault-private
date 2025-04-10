@@ -1,72 +1,108 @@
-variable "location" {
-  type        = string
-  description = "Azure Region location"
-}
-
-variable "azurerm_resource_group_name" {
-  type        = string
-  description = "Azure Resource Group Name"
-}
-
 variable "keyvault_name" {
   type        = string
-  description = "Azure keyvault Name"
+  description = "The name of the Azure Key Vault. Must be globally unique, 3-24 characters long, and can only contain alphanumeric characters and hyphens."
 }
 
-variable "environment" {
+variable "location" {
   type        = string
-  description = "Resource Tags ENVIRONMENT Value"
+  description = "The Azure region where the Key Vault and related resources will be deployed (e.g., 'eastus', 'westeurope')."
+}
+
+variable "resource_group_name" {
+  type        = string
+  description = "The name of the Azure Resource Group where the Key Vault will be created."
+}
+
+variable "log_analytics_resource_group_name" {
+  type        = string
+  description = "The name of the Azure Resource Group containing the existing Log Analytics Workspace used for diagnostic settings."
 }
 
 variable "sku_name" {
   type        = string
-  description = "KeyVault SKU Name. Possible values are standard and premium"
   default     = "standard"
-}
-
-variable "purge_protection" {
-  type        = bool
-  description = "Defaults to false, Once Purge Protection has been Enabled it's not possible to Disable it"
-  default     = "false"
-}
-
-variable "log_analytics_name" {
-  type        = string
-  description = "Azure log analytics name"
+  description = "The SKU name for the Key Vault. Valid values are 'standard' or 'premium'. 'premium' includes support for HSM-backed keys."
 }
 
 variable "soft_delete_retention_days" {
   type        = number
-  description = "The number of days that items should be retained for once soft-deleted. This value can be between `7` and `90`"
-  default     = "7"
+  default     = 90
+  description = "The number of days that deleted Key Vault items (keys, secrets, certificates) are retained before permanent deletion. Must be between 7 and 90."
+}
+
+variable "purge_protection" {
+  type        = bool
+  default     = false
+  description = "Enables purge protection for the Key Vault, preventing permanent deletion of the vault and its contents even after soft delete. Set to 'true' to enable."
 }
 
 variable "public_network_access_enabled" {
   type        = bool
-  description = "Whether public network access is allowed for this Key Vault. Defaults to true"
   default     = true
+  description = "Controls whether the Key Vault is accessible from public networks. Set to 'false' to restrict access to private networks only."
 }
 
-variable "network_acls" {
-  description = "Object with attributes: `bypass`, `default_action`, `ip_rules`, `virtual_network_subnet_ids`. Set to `null` to disable. See https://www.terraform.io/docs/providers/azurerm/r/key_vault.html#bypass for more information."
-  type = object({
-    bypass                     = optional(string, "None"),
-    default_action             = optional(string, "Deny"),
-    ip_rules                   = optional(list(string)),
-    virtual_network_subnet_ids = optional(list(string)),
-  })
-  default = {}
+variable "enable_rbac_authorization" {
+  type        = bool
+  default     = false
+  description = "Enables Azure Role-Based Access Control (RBAC) for the Key Vault instead of using access policies. Set to 'true' to use RBAC."
+}
+
+variable "environment" {
+  type        = string
+  default     = "production"
+  description = "The environment tag for the Key Vault (e.g., 'production', 'staging', 'development') used for resource tagging."
+}
+
+variable "diag_enabled" {
+  type        = bool
+  default     = false
+  description = "Enables diagnostic settings for the Key Vault, sending logs and metrics to the specified Log Analytics Workspace. Set to 'true' to enable."
+}
+
+variable "log_analytics_workspace_name" {
+  type        = string
+  default     = null
+  description = "The name of an existing Log Analytics Workspace to use for diagnostic settings. If null and diag_enabled is true, diagnostics will not be configured."
+}
+
+variable "diagnostic_retention_days" {
+  type        = number
+  default     = 30
+  description = "The number of days to retain diagnostic logs and metrics in the Log Analytics Workspace. Must be a positive integer."
 }
 
 variable "keyvault_extra_tags" {
   type        = map(string)
   default     = {}
-  description = "List of KV extra tags"
+  description = "A map of additional tags to apply to the Key Vault beyond the default tags (environment and managed_by)."
 }
 
-variable "diag_enabled" {
-  type        = bool
-  description = "Enable diagnostic service"
-  default = false
+variable "network_acls" {
+  type = object({
+    bypass                     = string
+    default_action             = string
+    ip_rules                   = list(string)
+    virtual_network_subnet_ids = list(string)
+  })
+  default     = null
+  description = "Network ACL configuration for the Key Vault. Includes bypass (e.g., 'AzureServices'), default_action ('Allow' or 'Deny'), ip_rules (list of CIDR ranges), and virtual_network_subnet_ids (list of subnet IDs). Set to null to disable network ACLs."
 }
 
+variable "key_permissions" {
+  type        = list(string)
+  default     = ["Create", "Get"]
+  description = "List of key permissions for the access policy (if RBAC is not enabled). Valid values include 'Create', 'Get', 'List', 'Delete', etc."
+}
+
+variable "secret_permissions" {
+  type        = list(string)
+  default     = ["Set", "Get", "Delete", "Purge", "Recover"]
+  description = "List of secret permissions for the access policy (if RBAC is not enabled). Valid values include 'Set', 'Get', 'List', 'Delete', 'Purge', 'Recover', etc."
+}
+
+variable "certificate_permissions" {
+  type        = list(string)
+  default     = ["Get", "List"]
+  description = "List of certificate permissions for the access policy (if RBAC is not enabled). Valid values include 'Get', 'List', 'Create', 'Delete', 'Update', etc."
+}

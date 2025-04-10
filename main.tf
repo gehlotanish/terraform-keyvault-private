@@ -1,97 +1,69 @@
-provider "azurerm" {
-  features {}
-}
-
-### Key vault
-
-data "azurerm_client_config" "current" {}
-
-resource "azurerm_key_vault" "example" {
+resource "azurerm_key_vault" "main" {
   name                          = var.keyvault_name
   location                      = var.location
-  resource_group_name           = var.azurerm_resource_group_name
+  resource_group_name           = var.resource_group_name
   tenant_id                     = data.azurerm_client_config.current.tenant_id
   sku_name                      = var.sku_name
   soft_delete_retention_days    = var.soft_delete_retention_days
   purge_protection_enabled      = var.purge_protection
   public_network_access_enabled = var.public_network_access_enabled
+  enable_rbac_authorization     = var.enable_rbac_authorization
 
-  access_policy {
-    tenant_id = data.azurerm_client_config.current.tenant_id
-    object_id = data.azurerm_client_config.current.object_id
+  # Default access policy (optional based on RBAC setting)
+  dynamic "access_policy" {
+    for_each = var.enable_rbac_authorization ? [] : [1]
+    content {
+      tenant_id = data.azurerm_client_config.current.tenant_id
+      object_id = data.azurerm_client_config.current.object_id
 
-    key_permissions = [
-      "Create",
-      "Get",
-    ]
-
-    secret_permissions = [
-      "Set",
-      "Get",
-      "Delete",
-      "Purge",
-      "Recover"
-    ]
+      key_permissions         = var.key_permissions
+      secret_permissions      = var.secret_permissions
+      certificate_permissions = var.certificate_permissions
+    }
   }
+
+  # Network ACLs
   dynamic "network_acls" {
-    for_each = var.network_acls == null ? [] : [var.network_acls]
-    iterator = acl
-
+    for_each = var.network_acls != null ? [var.network_acls] : []
     content {
-      bypass                     = acl.value.bypass
-      default_action             = acl.value.default_action
-      ip_rules                   = acl.value.ip_rules
-      virtual_network_subnet_ids = acl.value.virtual_network_subnet_ids
-    }
-  }
-  tags = merge(local.default_tags, var.keyvault_extra_tags)
-}
-
-resource "azurerm_log_analytics_workspace" "example" {
-  count = var.diag_enabled ? 1 : 0
-
-  name                = var.log_analytics_name
-  location            = var.location
-  resource_group_name = var.azurerm_resource_group_name
-  sku                 = "PerGB2018"
-  retention_in_days   = 30
-}
-
-resource "azurerm_monitor_diagnostic_setting" "example" {
-  count = var.diag_enabled ? 1 : 0
-
-  name                       = "${var.keyvault_name}-diag"
-  target_resource_id         = azurerm_key_vault.example.id
-  log_analytics_workspace_id = azurerm_log_analytics_workspace.example[count.index].id
-
-  dynamic "metric" {
-
-    iterator = entry
-    for_each = data.azurerm_monitor_diagnostic_categories.keyvault_diagsettings[count.index].metrics
-
-    content {
-      category = entry.value
-      enabled  = true
-
-      retention_policy {
-        enabled = true
-        days    = var.app_workspace_retention
-      }
+      bypass                     = network_acls.value.bypass
+      default_action             = network_acls.value.default_action
+      ip_rules                   = network_acls.value.ip_rules
+      virtual_network_subnet_ids = network_acls.value.virtual_network_subnet_ids
     }
   }
 
-  dynamic "enabled_log" {
+  tags = merge(
+    {
+      "environment" = var.environment
+      "managed_by"  = "terraform"
+    },
+    var.keyvault_extra_tags
+  )
+}
 
-    iterator = entry
-    for_each = data.azurerm_monitor_diagnostic_categories.keyvault_diagsettings[count.index].logs
+resource "azurerm_monitor_diagnostic_setting" "keyvault_diag" {
+  count                      = var.diag_enabled && var.log_analytics_workspace_name != null ? 1 : 0
+  name                       = "${var.keyvault_name}-diagnostics"
+  target_resource_id         = azurerm_key_vault.main.id
+  log_analytics_workspace_id = data.azurerm_log_analytics_workspace.existing[0].id
 
-    content {
-      category = entry.value
+  # Audit Logs
+  enabled_log {
+    category = "AuditEvent"
+    retention_policy {
+      enabled = true
+      days    = var.diagnostic_retention_days
+    }
+  }
 
-      retention_policy {
-        enabled = true
-        days    = var.app_workspace_retention
-      }
+  # Metrics
+  metric {
+    category = "AllMetrics"
+    enabled  = true
+    retention_policy {
+      enabled = true
+      days    = var.diagnostic_retention_days
     }
   }
 }
